@@ -1356,6 +1356,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "trie_farmer"
+version = "0.1.0"
+dependencies = [
+ "postcard",
+ "radix_trie",
+ "tokio",
+]
+
+[[package]]
+name = "trie_trimmer"
+version = "0.1.0"
+dependencies = [
+ "postcard",
+ "radix_trie",
+]
+
+[[package]]
 name = "try-lock"
 version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"

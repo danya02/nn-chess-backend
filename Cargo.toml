@@ -3,4 +3,6 @@ resolver = "2"
 members = [
     "position_extractor",
     "compact_board",
+    "trie_farmer",
+    "trie_trimmer",
 ]

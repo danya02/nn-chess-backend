@@ -69,13 +69,63 @@ impl Read for BytesStreamReader {
 async fn main() -> io::Result<()> {
     tracing_subscriber::fmt::init();
 
-    let filename = "lichess_db_standard_rated_2013-03.pgn.zst";
+    for year in 2013..=2014 {
+        for month in 1..12 {
+            download_data(year, month).await?;
+        }
+    }
+    Ok(())
+}
+
+const PERFORM_ISOLATED_TRIMMING: bool = true;
+
+async fn download_data(year: i32, month: i32) -> io::Result<()> {
+    let output_file = format!("single-{year}-{month}-board-trie.postcard");
+
+    // Check for tries that contain this month already
+    for file in std::fs::read_dir("../hugedata").unwrap() {
+        let file_name = file.unwrap().file_name();
+        let name = file_name.to_string_lossy();
+        println!("{name}");
+        if name == output_file {
+            println!("Not downloading for {year}-{month} because this file is already present");
+            return Ok(());
+        }
+        if let Some(prefix) = name.strip_suffix("-board-tries.postcard") {
+            if let Some(main) = prefix.strip_prefix("combined-") {
+                let parts: Vec<_> = main.split("+").collect();
+                let left_parts: Vec<_> = parts[0].split("-").collect();
+                let right_parts: Vec<_> = parts[1].split("-").collect();
+                let left_year: i32 = (left_parts[0]).parse().unwrap();
+                let left_month: i32 = (left_parts[1]).parse().unwrap();
+                let right_year = (right_parts[0]).parse().unwrap();
+                let right_month = (right_parts[1]).parse().unwrap();
+                let mut current_month = left_month;
+                let mut current_year = left_year;
+                while !(current_month == right_month && current_year == right_year) {
+                    if current_month == month && current_year == year {
+                        println!("Not downloading for {year}-{month} because there is a file that covers range {left_year}-{left_month} to {right_year}-{right_month}");
+                        return Ok(());
+                    }
+                    current_month += 1;
+                    if current_month > 12 {
+                        current_month = 1;
+                        current_year += 1;
+                    }
+                }
+
+                if current_month == month && current_year == year {
+                    println!("Not downloading for {year}-{month} because there is a file that covers range {left_year}-{left_month} to {right_year}-{right_month}");
+                    return Ok(());
+                }
+            }
+        }
+    }
 
     use futures::stream::TryStreamExt;
     use tokio_util::compat::FuturesAsyncReadCompatExt;
     let response = reqwest::get(format!(
-        "https://database.lichess.org/standard/{}",
-        filename
+        "https://database.lichess.org/standard/lichess_db_standard_rated_{year}-{month:0>2}.pgn.zst"
     ))
     .await
     .unwrap();
@@ -152,7 +202,8 @@ async fn main() -> io::Result<()> {
                 board_trie.map_with_default(board, |v| *v += 1, 0);
             }
         }
-        println!("Unique board count: {}", board_trie.len());
+        let len = board_trie.len();
+        println!("Board count: {}", len);
         println!("Counting boards with only 1 state...");
         let mut uniques = 0;
         for (_k, v) in board_trie.iter() {
@@ -162,27 +213,41 @@ async fn main() -> io::Result<()> {
         }
         println!("Unique boards: {uniques}");
 
+        if PERFORM_ISOLATED_TRIMMING {
+            println!("PERFORMING ISOLATED TRIMMING");
+            let mut more_keys: bool = true;
+            while more_keys {
+                more_keys = false;
+                let mut keys_to_delete = vec![];
+                for (k, v) in board_trie.iter() {
+                    if *v == 0 {
+                        keys_to_delete.push(k.clone());
+                    }
+                    if keys_to_delete.len() > 128 * 1024 {
+                        more_keys = true;
+                        break;
+                    }
+                }
+                for key in keys_to_delete.drain(0..) {
+                    board_trie.remove(&key);
+                }
+                println!(
+                    "Still remaining uniques: {}",
+                    uniques - (len - board_trie.len())
+                );
+            }
+        }
+
         println!("Board trie ready, saving...");
         let out_file = std::fs::OpenOptions::new()
             .create(true)
             .write(true)
-            .open(format!("../hugedata/{filename}-board-trie.postcard"))
+            .open(format!("../hugedata/{output_file}"))
             .unwrap();
 
         let out_file_buf = std::io::BufWriter::new(out_file);
 
         postcard::to_io(&board_trie, out_file_buf).unwrap();
-
-        println!("Writing datas and lengths");
-        let out_file = std::fs::OpenOptions::new()
-            .create(true)
-            .write(true)
-            .open(format!("../hugedata/{filename}-board-states.postcard"))
-            .unwrap();
-
-        let out_file_buf = std::io::BufWriter::new(out_file);
-        let data: Vec<_> = board_trie.iter().collect();
-        postcard::to_io(&data, out_file_buf).unwrap();
     })
     .await
     .unwrap();
