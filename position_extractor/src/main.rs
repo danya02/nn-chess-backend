@@ -69,8 +69,8 @@ impl Read for BytesStreamReader {
 async fn main() -> io::Result<()> {
     tracing_subscriber::fmt::init();
 
-    for year in 2013..=2014 {
-        for month in 1..12 {
+    for year in 2013..=2018 {
+        for month in 1..=12 {
             download_data(year, month).await?;
         }
     }
@@ -78,6 +78,9 @@ async fn main() -> io::Result<()> {
 }
 
 const PERFORM_ISOLATED_TRIMMING: bool = true;
+
+#[global_allocator]
+static ALLOCATOR: jemallocator::Jemalloc = jemallocator::Jemalloc;
 
 async fn download_data(year: i32, month: i32) -> io::Result<()> {
     let output_file = format!("single-{year}-{month}-board-trie.postcard");
@@ -142,7 +145,7 @@ async fn download_data(year: i32, month: i32) -> io::Result<()> {
         .into_async_read()
         .compat();
 
-    let (tx, rx) = tokio::sync::mpsc::channel::<Vec<u8>>(256);
+    let (tx, rx) = tokio::sync::mpsc::channel::<Vec<u8>>(512 * 1024);
 
     tokio::spawn(async move {
         let mut buf = [0u8; 16 * 1024];
@@ -153,11 +156,12 @@ async fn download_data(year: i32, month: i32) -> io::Result<()> {
             match len {
                 Ok(v) => {
                     downloaded_so_far += v;
-
-                    println!(
-                        "Read compressed data so far: {downloaded_so_far} \t/\t{total_len}\t{}",
-                        ((downloaded_so_far as f64) / total_len_float) * 100.0
-                    );
+                    if v > 0 {
+                        println!(
+                            "Read compressed data so far: {downloaded_so_far} \t/\t{total_len}\t{}",
+                            ((downloaded_so_far as f64) / total_len_float) * 100.0
+                        );
+                    }
                     let data = Vec::from_iter(buf[..v].iter().map(|v| *v));
                     if let Err(_) = tx.send(data).await {
                         break;
@@ -200,6 +204,34 @@ async fn download_data(year: i32, month: i32) -> io::Result<()> {
 
                 // Increment the counter associated with this board state.
                 board_trie.map_with_default(board, |v| *v += 1, 0);
+                if board_trie.len() % 10000 == 0 {
+                    println!("{}", board_trie.len());
+                }
+            }
+
+            if PERFORM_ISOLATED_TRIMMING && board_trie.len() > 32_768_000 {
+                // value found by monitoring RAM
+                println!("Performing intermediate compaction");
+                let mut repeats = 0;
+                for (_k, v) in board_trie.iter() {
+                    if *v != 0 {
+                        repeats += 1;
+                    }
+                }
+
+                let mut new_board_trie: radix_trie::Trie<Vec<u8>, usize> = radix_trie::Trie::new();
+                for (k, v) in board_trie.iter() {
+                    if *v > 0 {
+                        new_board_trie.insert(k.clone(), *v);
+                        if new_board_trie.len() % 1000 == 0 {
+                            println!("Copied values: {} out of {}", new_board_trie.len(), repeats);
+                        }
+                    }
+                }
+                println!("All values copied over, replacing old trie with new one");
+                let old_board_trie = std::mem::replace(&mut board_trie, new_board_trie);
+                println!("Dropping old trie...");
+                drop(old_board_trie);
             }
         }
         let len = board_trie.len();
@@ -252,5 +284,6 @@ async fn download_data(year: i32, month: i32) -> io::Result<()> {
     .await
     .unwrap();
 
+    panic!();
     Ok(())
 }

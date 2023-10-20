@@ -5,4 +5,6 @@ members = [
     "compact_board",
     "trie_farmer",
     "trie_trimmer",
+    "fish_teacher",
+    "tch_tchotchkes",
 ]

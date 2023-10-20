@@ -1,0 +1,16 @@
+[package]
+name = "fish_teacher"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+serde = { version = "1.0.189", features = ["derive"] }
+shakmaty = "0.26.0"
+tokio = { version = "1.33.0", features = ["full"] }
+compact_board = {path = "../compact_board"}
+postcard = { version = "1.0.8", features = ["use-std"] }
+radix_trie = { version = "0.2.1", features = ["serde"] }
+rand = "0.8.5"
+anyhow = "1.0.75"

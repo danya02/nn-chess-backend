@@ -1,0 +1,6 @@
+{
+    "rust-analyzer.server.extraEnv": {
+        "LIBTORCH_USE_PYTORCH": 1,
+        "LD_LIBRARY_PATH" : "/home/danya/.local/lib/python3.11/site-packages/torch/lib"
+    }
+}

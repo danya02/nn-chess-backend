@@ -21,3 +21,4 @@ radix_trie = { version = "0.2.1", features = ["serde"] }
 serde = "1.0.189"
 postcard = { version = "1.0.8", features = ["use-std"] }
 rayon = "1.8.0"
+jemallocator = "0.5.4"

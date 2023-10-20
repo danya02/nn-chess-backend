@@ -24,6 +24,8 @@ fn get_date_range(name: &str) -> Vec<Date> {
         }
     }
 
+    return vec![];
+
     if let Some(a) = name.strip_suffix("-board-tries.postcard") {
         if let Some(b) = a.strip_prefix("combined-") {
             let parts: Vec<_> = b.split("+").collect();
@@ -129,8 +131,9 @@ async fn perform_merge(
     let left_name = left_name_ref.to_string();
     let right_name = right_name_ref.to_string();
 
+    let before = left_trie.len();
     println!("Initial sizes:");
-    println!("Left: {}", left_trie.len());
+    println!("Left: {}", before);
     println!("Right: {}", right_trie.len());
     println!("Uniques counts:");
     let left_unique_count = left_trie.values().filter(|v| **v == 0).count();
@@ -147,6 +150,9 @@ async fn perform_merge(
             println!("Remaining: {remaining_entries}\t/\t{total_entries}");
         }
     }
+
+    println!("Before: {before}");
+    println!("After: {}", left_trie.len());
 
     let unique_count = left_trie.values().filter(|v| **v == 0).count();
     println!("New unique count: {unique_count}");
