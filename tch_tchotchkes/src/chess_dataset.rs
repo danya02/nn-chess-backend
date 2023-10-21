@@ -93,7 +93,7 @@ pub fn load_batch_only_evaluation(n: usize, separate_pos_neg: bool) -> Iter2 {
     let input_tensor = Tensor::from_slice(&inputs).view((data.len() as i64, 2 * 6 * 64));
     let output_tensor = Tensor::from_slice(&outputs).view((
         data.len() as i64,
-        separate_pos_neg.then_some(1).unwrap_or(0),
+        separate_pos_neg.then_some(2).unwrap_or(1),
     ));
 
     println!("Input shape: {:?}", input_tensor.size());

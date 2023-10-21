@@ -16,7 +16,7 @@ const INPUT_SHAPE: i64 = BOARD_SIZE * BOARD_SQUARE_NUM_OPTS;
 //const HIDDEN_SHAPE: &[i64] = &[1536, 768, 256]; -- normal
 //const HIDDEN_SHAPE: &[i64] = &[1536, 4096, 2048, 512, 128]; -- wide
 //const OUTPUT_SHAPE: i64 = 1; -- normal, wide
-const HIDDEN_SHAPE: &[i64] = &[1536, 4096, 16384, 8192, 4096, 2048, 1024, 512, 256, 128]; // superwide
+const HIDDEN_SHAPE: &[i64] = &[1536, 4096, 8192, 2048, 512, 256, 128]; // superwide
 const OUTPUT_SHAPE: i64 = 2;
 
 /// Defines the shape for a neural network whose output is a chess move
@@ -56,8 +56,8 @@ pub fn run_training() -> Result<()> {
     let mut test = load_batch_only_evaluation(1, true);
     let mut vs = nn::VarStore::new(Device::Cpu);
 
-    let mut epoch = 75;
-    vs.load("../hugedata/only-eval-checkpoints/75-wide.checkpoint")?;
+    let mut epoch = 154;
+    vs.load("../hugedata/only-eval-checkpoints/154-superwide.checkpoint")?;
 
     let net = net(&vs.root());
     let mut opt = nn::Adam::default().build(&vs, 0.001)?;
@@ -80,7 +80,7 @@ pub fn run_training() -> Result<()> {
             //dbg!(prediction.size());
 
             //println!("Loss:");
-            let loss = prediction.mse_loss(&output, tch::Reduction::Mean);
+            let loss = prediction.mse_loss(&output, tch::Reduction::Sum);
             //dbg!(loss.size());
             //println!("Backward step:");
             opt.backward_step(&loss);
@@ -98,7 +98,7 @@ pub fn run_training() -> Result<()> {
             //dbg!(input.size());
             //dbg!(output.size());
             //dbg!(prediction.size());
-            let test_accuracy = prediction.mse_loss(&output, tch::Reduction::Mean);
+            let test_accuracy = prediction.mse_loss(&output, tch::Reduction::Sum);
             println!(
                 "epoch: {:4} test loss: {:8.5}",
                 epoch,
@@ -168,7 +168,8 @@ pub fn move_predictor(
         for potential_move in position.legal_moves() {
             let new_position = position.clone().play(&potential_move)?;
             let eval_tensor = net.forward(&board_to_tensor(new_position.board()));
-            let eval = f32::try_from(eval_tensor)?;
+            let eval = Vec::<f32>::try_from(eval_tensor)?;
+            let eval = eval[0] - eval[1];
             if eval > preferred_move_eval {
                 preferred_move = potential_move.clone();
                 preferred_move_eval = eval + rng.gen_range(-0.1..0.1);

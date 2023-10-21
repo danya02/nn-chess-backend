@@ -110,7 +110,7 @@ async fn board_loader(senders: Vec<mpsc::Sender<Vec<u8>>>) {
             names.push(name);
         }
     }
-    let name_skips = [("combined-2016-6+2016-7-board-tries.postcard", 1552000)];
+    let name_skips = [("combined-2016-6+2016-7-board-tries.postcard", 4074000)];
 
     for name in names {
         println!("Loading file {name}...");
@@ -156,7 +156,7 @@ async fn board_loader(senders: Vec<mpsc::Sender<Vec<u8>>>) {
 
 async fn board_saver(mut recv: mpsc::Receiver<(Vec<u8>, f32, String)>) {
     let batch_size = 8192;
-    let mut batch_idx: usize = 355;
+    let mut batch_idx: usize = 945;
     let mut rng = rand::rngs::StdRng::from_seed(rand::random());
     let mut values = Vec::with_capacity(batch_size);
     loop {

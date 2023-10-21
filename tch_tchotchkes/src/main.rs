@@ -13,8 +13,8 @@ mod mnist_demo;
 
 pub fn main() {
     //run();
-    run_training().unwrap();
-    //play_epochs("10-wide", "70-wide");
+    //run_training().unwrap();
+    play_epochs("70-superwide", "220-superwide");
 }
 
 #[tokio::main]
