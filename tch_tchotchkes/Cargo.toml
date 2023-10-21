@@ -11,3 +11,6 @@ tch = { git = "https://github.com/LaurentMazare/tch-rs" }
 compact_board = {path = "../compact_board"}
 fish_teacher = {path = "../fish_teacher"}
 shakmaty = "0.26.0"
+postcard = { version = "1.0.8", features = ["use-std"] }
+tokio = { version = "1.33.0", features = ["sync", "full"] }
+rand = "0.8.5"

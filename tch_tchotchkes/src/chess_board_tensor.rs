@@ -1,8 +1,9 @@
 use shakmaty::{Color, Piece, Role, Square};
 use tch::{IndexOp, Tensor};
 
-pub fn board_to_tensor(board: &shakmaty::Board) -> Tensor {
-    let mut data = Vec::with_capacity(2 * 6 * 64);
+pub fn board_to_vector(board: &shakmaty::Board) -> [f32; 2 * 6 * 64] {
+    let mut data = [0.0; 2 * 6 * 64];
+    let mut cursor = 0;
     for file in shakmaty::File::ALL {
         for rank in shakmaty::Rank::ALL {
             let piece = board.piece_at(shakmaty::Square::from_coords(file, rank));
@@ -16,11 +17,15 @@ pub fn board_to_tensor(board: &shakmaty::Board) -> Tensor {
                 }
                 None => [0.0f32; 12],
             };
-            data.extend_from_slice(&to_add);
+            (&mut data[cursor..cursor + 12]).copy_from_slice(&to_add);
+            cursor += 12;
         }
     }
+    data
+}
 
-    Tensor::from_slice(&data)
+pub fn board_to_tensor(board: &shakmaty::Board) -> Tensor {
+    Tensor::from_slice(&board_to_vector(board))
 }
 
 /// Converts a tensor to a board.

@@ -110,13 +110,15 @@ async fn board_loader(senders: Vec<mpsc::Sender<Vec<u8>>>) {
             names.push(name);
         }
     }
+    let name_skips = [("combined-2016-6+2016-7-board-tries.postcard", 1552000)];
 
     for name in names {
         println!("Loading file {name}...");
+        let name_out = name.clone();
         let board_trie = tokio::task::spawn_blocking(move || {
             let file = std::fs::OpenOptions::new()
                 .read(true)
-                .open(format!("../hugedata/{name}"))
+                .open(format!("../hugedata/{name_out}"))
                 .unwrap();
             let reader = std::io::BufReader::new(file);
             let mut buf = [0; 32 * 1024];
@@ -127,11 +129,17 @@ async fn board_loader(senders: Vec<mpsc::Sender<Vec<u8>>>) {
         })
         .await
         .unwrap();
+        let mut board_trie_iter = board_trie.iter().enumerate();
+        for (n, v) in name_skips {
+            if name == n {
+                while board_trie_iter.next().unwrap().0 < v {}
+            }
+        }
 
         println!("Iterating over trie and loading boards...");
         let count = board_trie.len();
         let mut sender_cycle = senders.iter().cycle();
-        for (idx, (board, seen_count)) in board_trie.iter().enumerate() {
+        for (idx, (board, seen_count)) in board_trie_iter {
             if idx % 1000 == 0 {
                 println!("{idx}\t/\t{count} boards loaded...");
             }
@@ -148,7 +156,7 @@ async fn board_loader(senders: Vec<mpsc::Sender<Vec<u8>>>) {
 
 async fn board_saver(mut recv: mpsc::Receiver<(Vec<u8>, f32, String)>) {
     let batch_size = 8192;
-    let mut batch_idx: usize = 0;
+    let mut batch_idx: usize = 355;
     let mut rng = rand::rngs::StdRng::from_seed(rand::random());
     let mut values = Vec::with_capacity(batch_size);
     loop {
@@ -176,7 +184,7 @@ async fn main() {
     println!("Hello, world!");
     let mut board_senders = vec![];
     let (eval_tx, eval_rx) = mpsc::channel(1024);
-    for _ in 0..64 {
+    for _ in 0..4 {
         let (tx, rx) = mpsc::channel(256);
         board_senders.push(tx);
         tokio::spawn(fish_worker(rx, eval_tx.clone()));
