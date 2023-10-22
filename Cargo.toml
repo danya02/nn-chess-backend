@@ -7,4 +7,6 @@ members = [
     "trie_trimmer",
     "fish_teacher",
     "tch_tchotchkes",
+    "web_api",
+    "web_types",
 ]

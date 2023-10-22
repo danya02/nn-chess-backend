@@ -8,7 +8,6 @@ test:
 get_deps:
 	wget https://download.pytorch.org/libtorch/cpu/libtorch-shared-with-deps-2.1.0%2Bcpu.zip
 	unzip libtorch-shared-with-deps-2.1.0+cpu.zip
-	rm libtorch-shared-with-deps-2.1.0+cpu.zip
 
 get_mnist:
 	mkdir -p mnist-data

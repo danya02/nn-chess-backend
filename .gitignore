@@ -161,3 +161,6 @@ cython_debug/
 
 # Mounted
 hugedata/
+
+# Imported from system
+extra_lib/

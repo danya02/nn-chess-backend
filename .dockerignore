@@ -1,0 +1,31 @@
+# Ignore all intermediate data,
+hugedata/*
+
+# except for some chosen checkpoints
+!hugedata/eval-checkpoints/narrow/20.checkpoint
+!hugedata/eval-checkpoints/narrow/40.checkpoint
+!hugedata/eval-checkpoints/narrow/60.checkpoint
+!hugedata/eval-checkpoints/narrow/80.checkpoint
+!hugedata/eval-checkpoints/narrow/100.checkpoint
+!hugedata/eval-checkpoints/narrow/120.checkpoint
+!hugedata/eval-checkpoints/narrow/140.checkpoint
+!hugedata/eval-checkpoints/narrow/160.checkpoint
+!hugedata/eval-checkpoints/narrow/180.checkpoint
+!hugedata/eval-checkpoints/narrow/200.checkpoint
+
+!hugedata/eval-checkpoints/wide/10.checkpoint
+!hugedata/eval-checkpoints/wide/20.checkpoint
+!hugedata/eval-checkpoints/wide/30.checkpoint
+!hugedata/eval-checkpoints/wide/40.checkpoint
+!hugedata/eval-checkpoints/wide/50.checkpoint
+!hugedata/eval-checkpoints/wide/60.checkpoint
+!hugedata/eval-checkpoints/wide/70.checkpoint
+
+!hugedata/eval-checkpoints/superwide/10.checkpoint
+#!hugedata/eval-checkpoints/superwide/50.checkpoint
+!hugedata/eval-checkpoints/superwide/100.checkpoint
+#!hugedata/eval-checkpoints/superwide/150.checkpoint
+!hugedata/eval-checkpoints/superwide/200.checkpoint
+#!hugedata/eval-checkpoints/superwide/250.checkpoint
+!hugedata/eval-checkpoints/superwide/300.checkpoint
+!hugedata/eval-checkpoints/superwide/350.checkpoint

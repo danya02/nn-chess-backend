@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0.75"
-tch = { git = "https://github.com/LaurentMazare/tch-rs" }
+tch = { path = "../tch-rs" }
 compact_board = {path = "../compact_board"}
 fish_teacher = {path = "../fish_teacher"}
 shakmaty = "0.26.0"

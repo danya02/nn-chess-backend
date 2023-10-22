@@ -1,65 +1,34 @@
 use std::convert::Infallible;
 
 use anyhow::Result;
+use fish_teacher::EngineEvaluation;
 use rand::Rng;
 use shakmaty::{Board, ByColor, Chess, Color, FromSetup, Move, Position, Setup};
-use tch::{nn, nn::Module, nn::OptimizerConfig, vision::dataset::Dataset, Device, Tensor};
+use tch::{nn, nn::Module, nn::OptimizerConfig, Device};
 
 use crate::{
-    chess_board_tensor::{board_to_tensor, tensor_to_board},
-    chess_dataset::{load_batch, load_batch_only_evaluation, tensor_to_move},
+    chess_board_tensor::board_to_tensor, datasets::load_batch_only_evaluation, models::net,
 };
 
 const BOARD_SIZE: i64 = 64;
 const BOARD_SQUARE_NUM_OPTS: i64 = 2 * 6;
 const INPUT_SHAPE: i64 = BOARD_SIZE * BOARD_SQUARE_NUM_OPTS;
-//const HIDDEN_SHAPE: &[i64] = &[1536, 768, 256]; -- normal
-//const HIDDEN_SHAPE: &[i64] = &[1536, 4096, 2048, 512, 128]; -- wide
-//const OUTPUT_SHAPE: i64 = 1; -- normal, wide
-const HIDDEN_SHAPE: &[i64] = &[1536, 4096, 8192, 2048, 512, 256, 128]; // superwide
-const OUTPUT_SHAPE: i64 = 2;
-
-/// Defines the shape for a neural network whose output is a chess move
-fn net(vs: &nn::Path) -> impl Module {
-    let net = nn::seq();
-
-    // Input layer -> hidden layer 1
-    let mut net = net.add(nn::linear(
-        vs / "layer1",
-        INPUT_SHAPE,
-        HIDDEN_SHAPE[0],
-        Default::default(),
-    ));
-
-    for n in 0..HIDDEN_SHAPE.len() - 1 {
-        net = net.add_fn(|x| x.relu());
-        net = net.add(nn::linear(
-            vs.sub(&format!("hidden{n}")),
-            HIDDEN_SHAPE[n],
-            HIDDEN_SHAPE[n + 1],
-            Default::default(),
-        ))
-    }
-    // Now add the final hidden layer, which outputs to the output shape
-    let net = net.add(nn::linear(
-        vs.sub(&format!("hidden{}", HIDDEN_SHAPE.len() - 1)),
-        *HIDDEN_SHAPE.last().unwrap(),
-        OUTPUT_SHAPE,
-        Default::default(),
-    ));
-    // Do not apply any function on last layer
-    net
-}
+const HIDDEN_SHAPE: &[i64] = &[1536, 4096, 2048, 512, 128];
+const OUTPUT_SHAPE: i64 = 1;
 
 pub fn run_training() -> Result<()> {
-    let mut train = load_batch_only_evaluation(0, true);
-    let mut test = load_batch_only_evaluation(1, true);
+    let mut train = load_batch_only_evaluation(0, false);
+    let mut test = load_batch_only_evaluation(1, false);
     let mut vs = nn::VarStore::new(Device::Cpu);
 
-    let mut epoch = 154;
-    vs.load("../hugedata/only-eval-checkpoints/154-superwide.checkpoint")?;
+    let mut epoch = *get_checkpoint_idxs().iter().max().unwrap_or(&0);
+    if epoch > 0 {
+        vs.load(format!(
+            "../hugedata/eval-checkpoints/wide/{epoch}.checkpoint"
+        ))?;
+    }
 
-    let net = net(&vs.root());
+    let net = net(&vs.root(), INPUT_SHAPE, HIDDEN_SHAPE, OUTPUT_SHAPE);
     let mut opt = nn::Adam::default().build(&vs, 0.001)?;
     println!("Starting optimizing...");
     while epoch < 450 {
@@ -108,26 +77,40 @@ pub fn run_training() -> Result<()> {
 
         println!("Saving checkpoint {epoch}");
         vs.save(format!(
-            "../hugedata/only-eval-checkpoints/{epoch}-superwide.checkpoint"
+            "../hugedata/eval-checkpoints/wide{epoch}.checkpoint"
         ))?;
     }
 
     Ok(())
 }
 
+pub fn get_checkpoint_idxs() -> Vec<u64> {
+    let mut idxs = vec![];
+    for path in std::fs::read_dir("../hugedata/eval-checkpoints/wide/").unwrap() {
+        let name = path.unwrap().file_name();
+        let name = name.to_string_lossy();
+        if let Some(id) = name.strip_suffix(".checkpoint") {
+            idxs.push(id.parse().unwrap())
+        }
+    }
+    idxs
+}
+
 pub fn move_predictor(
-    checkpoint_name: String,
-    mut jobs: tokio::sync::mpsc::Receiver<(Chess, tokio::sync::oneshot::Sender<Move>)>,
+    checkpoint: u64,
+    mut jobs: tokio::sync::mpsc::Receiver<(
+        Chess,
+        tokio::sync::oneshot::Sender<(EngineEvaluation, Move, EngineEvaluation)>,
+    )>,
 ) -> anyhow::Result<Infallible> {
-    println!("Loading checkpoint {checkpoint_name}");
+    println!("Loading checkpoint wide/{checkpoint}");
     let mut vs = nn::VarStore::new(Device::Cpu);
 
-    let mut epoch = 0;
     vs.load(format!(
-        "../hugedata/only-eval-checkpoints/{checkpoint_name}.checkpoint"
+        "../hugedata/eval-checkpoints/wide/{checkpoint}.checkpoint"
     ))?;
 
-    let net = net(&vs.root());
+    let net = net(&vs.root(), INPUT_SHAPE, HIDDEN_SHAPE, OUTPUT_SHAPE);
 
     loop {
         let job = jobs.blocking_recv().unwrap();
@@ -161,6 +144,10 @@ pub fn move_predictor(
             position = Chess::from_setup(new_setup, shakmaty::CastlingMode::Standard)?;
         }
 
+        let current_eval_tensor = net.forward(&board_to_tensor(position.board()));
+        let current_eval = f32::try_from(current_eval_tensor)?;
+        let current_eval = EngineEvaluation::from_numeric_score(current_eval);
+
         let moves = position.legal_moves();
         let mut rng = rand::thread_rng();
         let mut preferred_move = moves.first().unwrap().clone();
@@ -168,8 +155,7 @@ pub fn move_predictor(
         for potential_move in position.legal_moves() {
             let new_position = position.clone().play(&potential_move)?;
             let eval_tensor = net.forward(&board_to_tensor(new_position.board()));
-            let eval = Vec::<f32>::try_from(eval_tensor)?;
-            let eval = eval[0] - eval[1];
+            let eval = f32::try_from(eval_tensor)?;
             if eval > preferred_move_eval {
                 preferred_move = potential_move.clone();
                 preferred_move_eval = eval + rng.gen_range(-0.1..0.1);
@@ -206,6 +192,12 @@ pub fn move_predictor(
                 },
             };
         }
-        job.1.send(preferred_move).unwrap();
+        job.1
+            .send((
+                current_eval,
+                preferred_move,
+                EngineEvaluation::from_numeric_score(preferred_move_eval),
+            ))
+            .unwrap();
     }
 }

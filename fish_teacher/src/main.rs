@@ -1,15 +1,15 @@
 #![feature(buf_read_has_data_left)]
-mod fish;
-
-use std::time::Duration;
+pub mod fish;
 
 use fish::Stockfish;
 use rand::{seq::SliceRandom, SeedableRng};
-use shakmaty::{uci::Uci, Bitboard, Board, ByColor, Chess, Color, FromSetup, Position, Setup};
+use shakmaty::{Bitboard, Board, ByColor, Chess, Color, FromSetup, Position, Setup};
 
 use compact_board::{board_to_compact, compact_slice_to_board};
 use radix_trie::TrieCommon;
 use tokio::sync::mpsc;
+
+pub use fish::EngineEvaluation;
 
 async fn fish_worker(
     mut board_rx: mpsc::Receiver<Vec<u8>>,

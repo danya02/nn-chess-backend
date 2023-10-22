@@ -1,0 +1,68 @@
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: unchessful-api
+  labels:
+    app: unchessful-api
+
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: unchessful-api
+  template:
+    metadata:
+      labels:
+        app: unchessful-api
+    spec:
+      nodeSelector:
+        kubernetes.io/arch: amd64
+      containers:
+        - name: server
+          image: registry.danya02.ru/unchessful/api:v1
+          imagePullPolicy: Always
+          resources:
+            requests:
+              memory: 1536M
+              cpu: 750m
+            limits:
+              memory: 2048M
+              cpu: 1500m
+          ports:
+            - name: web
+              containerPort: 3000
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: unchessful-api-svc
+
+spec:
+  ports:
+    - name: web
+      port: 80
+      targetPort: web
+
+  selector:
+    app: unchessful-api
+
+---
+
+# Traefik-specific ingress, can configure custom Traefik props
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: root-web-ingressroute
+spec:
+  tls:
+    domains:
+      - main: api.unchessful.games
+  entryPoints:
+    - websecure
+  routes:
+  - match: Host(`api.unchessful.games`)
+    kind: Rule
+    services:
+      - name: unchessful-api-svc
+        port: web
