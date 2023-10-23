@@ -1,6 +1,6 @@
 mod engines;
 
-use std::{collections::HashMap, convert::Infallible, num::NonZeroUsize, sync::Arc};
+use std::{collections::HashMap, convert::Infallible, sync::Arc};
 
 use axum::{routing::get, Json, Router};
 use fish_teacher::EngineEvaluation;
@@ -37,7 +37,8 @@ async fn main() {
         .nest("/engines/narrow", engines::narrow_service())
         .nest("/engines/wide", engines::wide_service())
         .nest("/engines/superwide", engines::superwide_service())
-        .with_state(ServerState::default());
+        .with_state(ServerState::default())
+        .layer(tower_http::cors::CorsLayer::permissive());
 
     axum::Server::bind(&"0.0.0.0:3000".parse().unwrap())
         .serve(app.into_make_service())

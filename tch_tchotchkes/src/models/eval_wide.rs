@@ -33,8 +33,8 @@ pub fn run_training() -> Result<()> {
     println!("Starting optimizing...");
     while epoch < 450 {
         epoch += 1;
-        train = load_batch_only_evaluation(epoch * 2, true);
-        test = load_batch_only_evaluation(epoch * 2 + 1, true);
+        train = load_batch_only_evaluation(epoch * 2, false);
+        test = load_batch_only_evaluation(epoch * 2 + 1, false);
         println!("Training...");
         for (input, output) in train.shuffle().to_device(vs.device()) {
             //let input = input.view(-1);
@@ -77,7 +77,7 @@ pub fn run_training() -> Result<()> {
 
         println!("Saving checkpoint {epoch}");
         vs.save(format!(
-            "../hugedata/eval-checkpoints/wide{epoch}.checkpoint"
+            "../hugedata/eval-checkpoints/wide/{epoch}.checkpoint"
         ))?;
     }
 

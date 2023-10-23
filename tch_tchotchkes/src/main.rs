@@ -13,7 +13,7 @@ mod datasets;
 pub mod models;
 
 pub fn main() {
-    eval_superwide::run_training().unwrap();
+    eval_wide::run_training().unwrap();
     // let (white_tx, white_rx) = mpsc::channel(1);
     // std::thread::spawn(move || eval_narrow::move_predictor(20, white_rx));
 

@@ -3,7 +3,6 @@ use std::num::NonZeroUsize;
 use axum::{
     extract::{Path, State},
     http::StatusCode,
-    response::IntoResponse,
     routing::{get, post},
     Json, Router,
 };
@@ -38,7 +37,7 @@ async fn index() -> Json<EngineDescription> {
             engine_id: "wide".to_string(),
             variant_id: format!("chkpoint_{idx}"),
             name: format!("Using checkpoint {idx}"),
-            game_url: format!("https://api.unchessful.games/engines/wide/checkpoints/{idx}"),
+            game_url: format!("https://api.unchessful.games/engines/superwide/checkpoints/{idx}"),
         };
         if idx >= max_variant_id {
             max_variant = var.clone();

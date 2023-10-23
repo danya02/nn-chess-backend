@@ -2,13 +2,13 @@ use serde::{Deserialize, Serialize};
 
 /// The entrypoint to the engine API.
 /// Lists what engines are available.
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Hash)]
 pub struct EngineDirectory {
     pub engines: Vec<EngineRef>,
 }
 
 /// A reference to an engine.
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Hash)]
 pub struct EngineRef {
     pub engine_id: String,
     pub name: String,
@@ -16,7 +16,7 @@ pub struct EngineRef {
 }
 
 /// Detailed information about an engine.
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Hash)]
 pub struct EngineDescription {
     pub engine_id: String,
     pub name: String,
@@ -28,7 +28,7 @@ pub struct EngineDescription {
 /// Information about a variant of a particular engine.
 /// This could be a difficulty setting,
 /// or a different machine learning checkpoint.
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Hash)]
 pub struct EngineVariant {
     pub engine_id: String,
     pub variant_id: String,
@@ -38,13 +38,13 @@ pub struct EngineVariant {
 }
 
 /// Encodes the game state in order for the engine to make a move.
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Hash)]
 pub struct GameMoveRequest {
     pub fen: String,
 }
 
 /// Encodes the engine's move, as well as additional information about it the move.
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, PartialEq)]
 pub struct GameMoveResponse {
     /// What move the engine is performing, in standard algebraic notation.
     pub move_san: String,
