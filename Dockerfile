@@ -21,7 +21,7 @@ FROM debian:sid-slim
 #RUN cat /etc/apt/sources.list.d/debian.sources && exit 1
 RUN sed -i 's/main/main/' /etc/apt/sources.list.d/debian.sources \
     && apt-get update -y \
-    && apt-get -y --no-install-recommends install libgomp1  \
+    && apt-get -y --no-install-recommends install libgomp1 stockfish  \
     && rm -rf /var/lib/apt/lists/* 
 
 WORKDIR /app
@@ -34,4 +34,5 @@ COPY extra_lib /usr/lib
 
 WORKDIR /app/target
 #ENV LD_LIBRARY_PATH=/lib
+ENV PART=/usr/games
 ENTRYPOINT ["./release/web_api"]

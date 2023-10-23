@@ -15,7 +15,7 @@ pub struct Stockfish {
 
 impl Stockfish {
     pub fn new() -> Self {
-        let mut child = std::process::Command::new("stockfish")
+        let mut child = std::process::Command::new("/usr/games/stockfish")
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .spawn()

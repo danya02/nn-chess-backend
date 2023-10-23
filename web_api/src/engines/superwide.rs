@@ -25,7 +25,7 @@ pub(crate) fn service() -> Router<ServerState> {
 pub(crate) fn stockfish_service() -> Router<ServerState> {
     Router::new().route("/", get(stockfish_index)).route(
         "/chk/:id/percent/:perc",
-        post(get_move).get(engine_endpoint_info),
+        post(get_move_or_stockfish).get(engine_endpoint_info),
     )
 }
 
@@ -106,14 +106,17 @@ async fn stockfish_index() -> Json<EngineDescription> {
     })
 }
 
+#[axum::debug_handler]
 async fn get_move_or_stockfish(
     Path((id, perc)): Path<(u64, u64)>,
     State(s): State<ServerState>,
     Json(req): Json<GameMoveRequest>,
 ) -> Result<Json<GameMoveResponse>, (StatusCode, String)> {
-    let mut rng = rand::thread_rng();
-    let resp = rng.gen_range(0..100);
-    drop(rng);
+    let resp;
+    {
+        let mut rng = rand::thread_rng();
+        resp = rng.gen_range(0..100);
+    }
     if resp < perc {
         // Check that the input FEN is correct.
         let fen = Fen::from_ascii(req.fen.as_bytes());
