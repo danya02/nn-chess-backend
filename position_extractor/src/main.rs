@@ -101,8 +101,8 @@ async fn download_data(year: i32, month: i32) -> io::Result<()> {
                 let right_parts: Vec<_> = parts[1].split("-").collect();
                 let left_year: i32 = (left_parts[0]).parse().unwrap();
                 let left_month: i32 = (left_parts[1]).parse().unwrap();
-                let right_year = (right_parts[0]).parse().unwrap();
-                let right_month = (right_parts[1]).parse().unwrap();
+                let right_year: i32 = (right_parts[0]).parse().unwrap();
+                let right_month: i32 = (right_parts[1]).parse().unwrap();
                 let mut current_month = left_month;
                 let mut current_year = left_year;
                 while !(current_month == right_month && current_year == right_year) {

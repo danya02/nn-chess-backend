@@ -25,7 +25,7 @@ pub fn load_batch(n: usize) -> Iter2 {
 
     for datum in data.iter() {
         let board = compact_slice_to_board(&datum.0).unwrap();
-        let board_vector = board_to_vector(&board);
+        let board_vector = board_to_vector(&board, true);
         inputs.extend_from_slice(&board_vector);
         let uci = Uci::from_ascii(datum.2.as_bytes()).unwrap();
         let mut move_dest = [0i64; 3];

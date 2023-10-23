@@ -5,7 +5,7 @@ use std::{
 };
 
 use anyhow::Result;
-use shakmaty::{uci::Uci, Bitboard, Color};
+use shakmaty::{fen::Fen, uci::Uci, Bitboard, Color, Position};
 
 pub struct Stockfish {
     process: std::process::Child,
@@ -92,6 +92,50 @@ impl Stockfish {
         }
 
         let eval = EngineEvaluation::from_str(&last_score, to_move);
+
+        let parts: Vec<_> = line.split_whitespace().collect();
+        let my_move: Vec<_> = parts[1]
+            .as_bytes()
+            .iter()
+            .map(|v| char::from_u32(*v as u32).unwrap())
+            .collect();
+        if parts[1] == "(none)" {
+            return Ok(None);
+        }
+
+        Ok(Some((eval, Uci::from_str(&parts[1].trim()).unwrap())))
+    }
+
+    pub fn evaluate_pos(
+        &mut self,
+        board: &shakmaty::Chess,
+    ) -> anyhow::Result<Option<(EngineEvaluation, Uci)>> {
+        self.ready_check();
+        self.say("ucinewgame");
+        self.say("setoption name UCI_AnalyseMode value true");
+        self.say(&format!(
+            "position fen {}",
+            Fen::from_position(board.clone(), shakmaty::EnPassantMode::Legal).to_string()
+        ));
+        self.say(&format!("go depth {}", 10));
+        let mut last_score = String::new();
+        let mut line = String::new();
+
+        while !line.starts_with("bestmove") {
+            line = self.listen()?;
+            if line.starts_with("info") {
+                last_score = line
+                    .split("score")
+                    .last()
+                    .unwrap()
+                    .split("nodes")
+                    .nth(0)
+                    .unwrap()
+                    .to_string();
+            }
+        }
+
+        let eval = EngineEvaluation::from_str(&last_score, board.turn());
 
         let parts: Vec<_> = line.split_whitespace().collect();
         let my_move: Vec<_> = parts[1]

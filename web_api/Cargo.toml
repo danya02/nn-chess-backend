@@ -15,3 +15,4 @@ fish_teacher = { version = "0.1.0", path = "../fish_teacher" }
 lru = "0.12.0"
 anyhow = "1.0.75"
 tower-http = { version = "0.4.4", features = ["cors"] }
+rand = "0.8.5"

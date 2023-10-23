@@ -1,6 +1,7 @@
 pub mod eval_narrow;
 pub mod eval_superwide;
 pub mod eval_wide;
+pub mod move_rnn;
 
 use tch::nn::{self, Module};
 

@@ -9,4 +9,5 @@ members = [
     "tch_tchotchkes",
     "web_api",
     "web_types",
+    "nn-chess-frontend",
 ]

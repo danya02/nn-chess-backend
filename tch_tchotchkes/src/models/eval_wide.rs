@@ -144,7 +144,7 @@ pub fn move_predictor(
             position = Chess::from_setup(new_setup, shakmaty::CastlingMode::Standard)?;
         }
 
-        let current_eval_tensor = net.forward(&board_to_tensor(position.board()));
+        let current_eval_tensor = net.forward(&board_to_tensor(position.board(), false));
         let current_eval = f32::try_from(current_eval_tensor)?;
         let current_eval = EngineEvaluation::from_numeric_score(current_eval);
 
@@ -154,7 +154,7 @@ pub fn move_predictor(
         let mut preferred_move_eval = f32::NEG_INFINITY;
         for potential_move in position.legal_moves() {
             let new_position = position.clone().play(&potential_move)?;
-            let eval_tensor = net.forward(&board_to_tensor(new_position.board()));
+            let eval_tensor = net.forward(&board_to_tensor(new_position.board(), false));
             let eval = f32::try_from(eval_tensor)?;
             if eval > preferred_move_eval {
                 preferred_move = potential_move.clone();

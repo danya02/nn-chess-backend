@@ -37,6 +37,10 @@ async fn main() {
         .nest("/engines/narrow", engines::narrow_service())
         .nest("/engines/wide", engines::wide_service())
         .nest("/engines/superwide", engines::superwide_service())
+        .nest(
+            "/engines/superstonkfish",
+            engines::superwide_stockfish_service(),
+        )
         .with_state(ServerState::default())
         .layer(tower_http::cors::CorsLayer::permissive());
 
@@ -63,6 +67,11 @@ async fn index() -> Json<EngineDirectory> {
                 engine_id: "superwide".to_string(),
                 name: "Superwide Board Evaluator".to_string(),
                 entrypoint_url: "https://api.unchessful.games/engines/superwide".to_string(),
+            },
+            EngineRef {
+                engine_id: "superstonkfish".to_string(),
+                name: "Superwide-Stockfish Dilution".to_string(),
+                entrypoint_url: "https://api.unchessful.games/engines/superstonkfish".to_string(),
             },
         ],
     })

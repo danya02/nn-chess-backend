@@ -13,7 +13,7 @@ mod datasets;
 pub mod models;
 
 pub fn main() {
-    eval_wide::run_training().unwrap();
+    //eval_wide::run_training().unwrap();
     // let (white_tx, white_rx) = mpsc::channel(1);
     // std::thread::spawn(move || eval_narrow::move_predictor(20, white_rx));
 
@@ -21,6 +21,8 @@ pub fn main() {
     // std::thread::spawn(move || eval_wide::move_predictor(20, black_rx));
 
     // play_epochs(white_tx, black_tx);
+
+    move_rnn::run_training().unwrap();
 }
 
 #[tokio::main]

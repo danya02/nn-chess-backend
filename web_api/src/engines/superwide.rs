@@ -7,6 +7,7 @@ use axum::{
     Json, Router,
 };
 use fish_teacher::EngineEvaluation;
+use rand::Rng;
 use shakmaty::{fen::Fen, san::San, Chess, Move, Position};
 use tch_tchotchkes::models::eval_superwide;
 use tokio::sync::{mpsc, oneshot};
@@ -20,6 +21,12 @@ pub(crate) fn service() -> Router<ServerState> {
     Router::new()
         .route("/", get(index))
         .route("/checkpoints/:id", post(get_move).get(engine_endpoint_info))
+}
+pub(crate) fn stockfish_service() -> Router<ServerState> {
+    Router::new().route("/", get(stockfish_index)).route(
+        "/chk/:id/percent/:perc",
+        post(get_move).get(engine_endpoint_info),
+    )
 }
 
 async fn index() -> Json<EngineDescription> {
@@ -54,10 +61,121 @@ async fn index() -> Json<EngineDescription> {
     })
 }
 
+async fn stockfish_index() -> Json<EngineDescription> {
+    let mut variants = vec![];
+    let mut max_variant = EngineVariant {
+        engine_id: String::new(),
+        variant_id: String::new(),
+        name: String::new(),
+        game_url: String::new(),
+    };
+
+    let mut best_chk = 0;
+    for idx in eval_superwide::get_checkpoint_idxs() {
+        best_chk = best_chk.max(idx);
+    }
+
+    for i in 0..=9 {
+        let percent = i * 10;
+        variants.push(EngineVariant {
+            engine_id: "superstonkfish".to_string(),
+            variant_id: format!("{percent}-perc"),
+            name: format!("{percent}% likelihood of Stockfish"),
+            game_url: format!(
+                "https://api.unchessful.games/engines/superstonkfish/chk/{best_chk}/percent/{percent}"
+            ),
+        });
+    }
+
+    let best = EngineVariant {
+        engine_id: "superstonkfish".to_string(),
+        variant_id: format!("pure"),
+        name: format!("Pure Stockfish"),
+        game_url: format!(
+            "https://api.unchessful.games/engines/superstonkfish/chk/{best_chk}/percent/100"
+        ),
+    };
+    variants.push(best.clone());
+
+    Json(EngineDescription {
+        engine_id: "superstonkfish".to_string(),
+        name: "Superwide-Stockfish Dilution".to_string(),
+        text_description: "With probability n%, plays a move recommended by Stockfish. Otherwise, plays a move by the Superwide model.".to_string(),
+        variants: variants,
+        best_available_variant: best,
+    })
+}
+
+async fn get_move_or_stockfish(
+    Path((id, perc)): Path<(u64, u64)>,
+    State(s): State<ServerState>,
+    Json(req): Json<GameMoveRequest>,
+) -> Result<Json<GameMoveResponse>, (StatusCode, String)> {
+    let mut rng = rand::thread_rng();
+    let resp = rng.gen_range(0..100);
+    drop(rng);
+    if resp < perc {
+        // Check that the input FEN is correct.
+        let fen = Fen::from_ascii(req.fen.as_bytes());
+        let fen = match fen {
+            Ok(f) => f,
+            Err(why) => return Err((StatusCode::BAD_REQUEST, format!("Invalid FEN: {why}"))),
+        };
+
+        let game: Chess = match fen.into_position(shakmaty::CastlingMode::Standard) {
+            Ok(c) => c,
+            Err(why) => {
+                return Err((
+                    StatusCode::BAD_REQUEST,
+                    format!("FEN could not be parsed into a position: {why}"),
+                ))
+            }
+        };
+        let game_out = game.clone();
+
+        let start = std::time::Instant::now();
+        let result = tokio::task::spawn_blocking(move || {
+            let mut stockfish = fish_teacher::fish::Stockfish::new();
+            stockfish.ready_check().unwrap();
+            let eval = stockfish.evaluate_pos(&game_out).unwrap().unwrap();
+            let act = eval.1.to_move(&game_out).unwrap();
+            (act, eval.0.to_numeric_score())
+        })
+        .await;
+        let dur = std::time::Instant::now() - start;
+        match result {
+            Ok(v) => {
+                let game_after = game.clone().play(&v.0).unwrap();
+
+                Ok(Json(GameMoveResponse {
+                    move_san: San::from_move(&game, &v.0).to_string(),
+                    game_after_fen: Fen::from_position(game_after, shakmaty::EnPassantMode::Legal)
+                        .to_string(),
+                    evaluation_before: 0.0,
+                    evaluation_after: v.1,
+                    move_timing: dur,
+                }))
+            }
+            Err(why) => Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Could not get response from Stockfish: {why}"),
+            )),
+        }
+    } else {
+        get_move_inner(id, s, req).await
+    }
+}
 async fn get_move(
     Path(id): Path<u64>,
     State(s): State<ServerState>,
     Json(req): Json<GameMoveRequest>,
+) -> Result<Json<GameMoveResponse>, (StatusCode, String)> {
+    get_move_inner(id, s, req).await
+}
+async fn get_move_inner(
+    id: u64,
+    s: ServerState,
+    req: GameMoveRequest,
 ) -> Result<Json<GameMoveResponse>, (StatusCode, String)> {
     // Check that there exists an engine checkpoint with this idx.
     let idxs = tokio::task::spawn_blocking(eval_superwide::get_checkpoint_idxs)
