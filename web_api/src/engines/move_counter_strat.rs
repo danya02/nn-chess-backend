@@ -61,7 +61,8 @@ async fn index() -> Json<EngineDescription> {
         name: "The Lawyer".to_string(),
         description: "Tries to put itself in a position with the most legal moves possible"
             .to_string(),
-        game_url: "https://api.unchessful.games/engines/move_counter/self/is_min/0".to_string(),
+        game_url: "https://api.unchessful.games/engines/move_counter/self_moves/is_min/0"
+            .to_string(),
     };
 
     let variants = vec![

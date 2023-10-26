@@ -104,7 +104,7 @@ async fn stockfish_index() -> Json<EngineDescription> {
     variants.push(full);
     let best = variants
         .iter()
-        .find(|v| v.name == "50-perc")
+        .find(|v| v.variant_id == "50-perc")
         .unwrap()
         .clone();
 
