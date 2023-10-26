@@ -158,7 +158,7 @@ pub fn move_predictor(
             let eval = eval[0] - eval[1];
             if eval > preferred_move_eval {
                 preferred_move = potential_move.clone();
-                preferred_move_eval = eval + rng.gen_range(-0.1..0.1);
+                preferred_move_eval = eval + rng.gen_range(-0.025..0.025);
             }
         }
 

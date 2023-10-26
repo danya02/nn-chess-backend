@@ -37,6 +37,7 @@ async fn index() -> Json<EngineDescription> {
         variant_id: String::new(),
         name: String::new(),
         game_url: String::new(),
+        description: String::new(),
     };
 
     for idx in eval_superwide::get_checkpoint_idxs() {
@@ -44,6 +45,7 @@ async fn index() -> Json<EngineDescription> {
             engine_id: "wide".to_string(),
             variant_id: format!("chkpoint_{idx}"),
             name: format!("Using checkpoint {idx}"),
+            description: format!("The model has been trained for {idx} epochs"),
             game_url: format!("https://api.unchessful.games/engines/superwide/checkpoints/{idx}"),
         };
         if idx >= max_variant_id {
@@ -68,6 +70,7 @@ async fn stockfish_index() -> Json<EngineDescription> {
         variant_id: String::new(),
         name: String::new(),
         game_url: String::new(),
+        description: String::new(),
     };
 
     let mut best_chk = 0;
@@ -80,7 +83,8 @@ async fn stockfish_index() -> Json<EngineDescription> {
         variants.push(EngineVariant {
             engine_id: "superstonkfish".to_string(),
             variant_id: format!("{percent}-perc"),
-            name: format!("{percent}% likelihood of Stockfish"),
+            name: format!("{percent}% Stockfish"),
+            description: format!("A move by Stockfish is played {percent}% of the time"),
             game_url: format!(
                 "https://api.unchessful.games/engines/superstonkfish/chk/{best_chk}/percent/{percent}"
             ),
@@ -91,6 +95,7 @@ async fn stockfish_index() -> Json<EngineDescription> {
         engine_id: "superstonkfish".to_string(),
         variant_id: format!("pure"),
         name: format!("Pure Stockfish"),
+        description: format!("A move by Stockfish is always played"),
         game_url: format!(
             "https://api.unchessful.games/engines/superstonkfish/chk/{best_chk}/percent/100"
         ),
@@ -142,7 +147,7 @@ async fn get_move_or_stockfish(
             stockfish.ready_check().unwrap();
             let eval = stockfish.evaluate_pos(&game_out).unwrap().unwrap();
             let act = eval.1.to_move(&game_out).unwrap();
-            (act, eval.0.to_numeric_score())
+            (act, eval.0)
         })
         .await;
         let dur = std::time::Instant::now() - start;
@@ -154,8 +159,7 @@ async fn get_move_or_stockfish(
                     move_san: San::from_move(&game, &v.0).to_string(),
                     game_after_fen: Fen::from_position(game_after, shakmaty::EnPassantMode::Legal)
                         .to_string(),
-                    evaluation_before: 0.0,
-                    evaluation_after: v.1,
+                    status_text: format!("Stockfish move: eval after = {:?}", v.1),
                     move_timing: dur,
                 }))
             }
@@ -226,8 +230,13 @@ async fn get_move_inner(
     Ok(Json(GameMoveResponse {
         move_san: San::from_move(&game, &act).to_string(),
         game_after_fen: Fen::from_position(game_after, shakmaty::EnPassantMode::Legal).to_string(),
-        evaluation_before: before.to_numeric_score(),
-        evaluation_after: after.to_numeric_score(),
+        status_text: format!(
+            "Eval before: {} (means {:?})\nEval after: {} (means {:?})",
+            before.to_numeric_score(),
+            before,
+            after.to_numeric_score(),
+            after
+        ),
         move_timing: duration,
     }))
 }

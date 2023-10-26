@@ -156,7 +156,7 @@ pub fn move_predictor(
             let eval = f32::try_from(eval_tensor)?;
             if eval > preferred_move_eval {
                 preferred_move = potential_move.clone();
-                preferred_move_eval = eval + rng.gen_range(-0.1..0.1);
+                preferred_move_eval = eval + rng.gen_range(-0.025..0.025);
             }
         }
 

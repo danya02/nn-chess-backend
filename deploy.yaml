@@ -12,7 +12,7 @@ metadata:
     app: unchessful-api
 
 spec:
-  replicas: 2
+  replicas: 3
   selector:
     matchLabels:
       app: unchessful-api
@@ -36,7 +36,7 @@ spec:
               - key: kubernetes.io/hostname
                 operator: NotIn
                 values:
-                - k8s-adam
+                - rudn-proxmox-danya-k8s
       nodeSelector:
         kubernetes.io/arch: amd64
       containers:

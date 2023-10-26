@@ -33,6 +33,7 @@ pub struct EngineVariant {
     pub engine_id: String,
     pub variant_id: String,
     pub name: String,
+    pub description: String,
     /// Post a [`GameMoveRequest`] to this URL to receive an engine move.
     pub game_url: String,
 }
@@ -43,6 +44,17 @@ pub struct GameMoveRequest {
     pub fen: String,
 }
 
+impl GameMoveRequest {
+    pub fn to_game(&self) -> Option<shakmaty::Chess> {
+        Some(
+            shakmaty::fen::Fen::from_ascii(self.fen.as_bytes())
+                .ok()?
+                .into_position(shakmaty::CastlingMode::Standard)
+                .ok()?,
+        )
+    }
+}
+
 /// Encodes the engine's move, as well as additional information about it the move.
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
 pub struct GameMoveResponse {
@@ -50,10 +62,8 @@ pub struct GameMoveResponse {
     pub move_san: String,
     /// What the game looks like after this move, in FEN.
     pub game_after_fen: String,
-    /// The engine's evaluation of the board before the move. Between -1 and 1, positive numbers are to engine's advantage.
-    pub evaluation_before: f32,
-    /// The engine's evaluation of the board after the move.
-    pub evaluation_after: f32,
+    /// Human-readable description of the engine's thoughts regarding the move.
+    pub status_text: String,
     /// How long did it take for the engine to respond.
     pub move_timing: std::time::Duration,
 }

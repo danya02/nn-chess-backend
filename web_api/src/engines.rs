@@ -1,8 +1,10 @@
+mod move_counter_strat;
 mod narrow;
 mod superwide;
 mod wide;
 
 use axum::http::StatusCode;
+pub(crate) use move_counter_strat::service as move_counter_service;
 pub(crate) use narrow::service as narrow_service;
 pub(crate) use superwide::service as superwide_service;
 pub(crate) use superwide::stockfish_service as superwide_stockfish_service;

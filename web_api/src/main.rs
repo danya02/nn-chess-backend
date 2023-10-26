@@ -41,6 +41,7 @@ async fn main() {
             "/engines/superstonkfish",
             engines::superwide_stockfish_service(),
         )
+        .nest("/engines/move_counter", engines::move_counter_service())
         .with_state(ServerState::default())
         .layer(tower_http::cors::CorsLayer::permissive());
 
@@ -69,9 +70,24 @@ async fn index() -> Json<EngineDirectory> {
                 entrypoint_url: "https://api.unchessful.games/engines/superwide".to_string(),
             },
             EngineRef {
+                engine_id: "smolfish".to_string(),
+                name: "Narrow-Stockfish Dilution".to_string(),
+                entrypoint_url: "https://api.unchessful.games/engines/narrow/smolfish".to_string(),
+            },
+            EngineRef {
+                engine_id: "widefish".to_string(),
+                name: "Wide-Stockfish Dilution".to_string(),
+                entrypoint_url: "https://api.unchessful.games/engines/wide/widefish".to_string(),
+            },
+            EngineRef {
                 engine_id: "superstonkfish".to_string(),
                 name: "Superwide-Stockfish Dilution".to_string(),
                 entrypoint_url: "https://api.unchessful.games/engines/superstonkfish".to_string(),
+            },
+            EngineRef {
+                engine_id: "move_counter_strat".to_string(),
+                name: "Move-Counting Strategies".to_string(),
+                entrypoint_url: "https://api.unchessful.games/engines/move_counter".to_string(),
             },
         ],
     })
